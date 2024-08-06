@@ -1,116 +1,198 @@
 local time = 0
 local framerate = 0
 
-scrWidth = 0
-scrHeight = 0
-
-ball = {
-    x = 0,
-    y = 0,
-    radius = 10,
-    velocity = {
-        x = 0,
-        y = 0,
-    }
+local scrWidth, scrHeight
+local gravity = 1100
+local jetpackForce = -2500
+local maxSpeedJetpack = -1000
+local character = {
+    x = 100,
+    y = 200,
+    width = 100,
+    height = 100,
+    velocityY = 0, 
+    isFlying = false,
+    angle = 0          
 }
 
-mousePosition = {
-    x = 0,
-    y = 0,
-}
+local playerSpeed = 350
+local speedIncrement = 10
 
-acceleration = 5
-maxSpeed = 1.5
-ballSpeed = 0
-input = { left = false, right = false, up = false, down = false }
+-- Require the Camera and Obstacles modules
+local Camera = require("camera")
+local Obstacles = require("obstacles")
+
+local mousePosX = 0
+local mousePosY = 0
 
 function love.load()
+    math.randomseed(os.time())
+
     scrWidth = love.graphics.getWidth()
     scrHeight = love.graphics.getHeight()
-
-    ball.x = scrWidth / 2
-    ball.y = scrHeight / 2
-
-    love.window.setTitle("Hello Love")
+    
     love.graphics.setNewFont(24)
+    
+    -- Initialize camera
+    camera = Camera
+    camera:setPosition(character.x - scrWidth / 2.5, 0)
+    
+    -- Initialize obstacles
+    Obstacles.init(scrWidth, scrHeight)
 end
 
 function love.draw()
-    love.graphics.printf("Current Time: " .. math.floor(time), -5, 0, love.graphics.getWidth(), "right")
-    love.graphics.printf("FPS: " .. framerate, 5, 0, love.graphics.getWidth(), "left")
-    love.graphics.printf("Mouse Position: x: " .. mousePosition.x .. " y: ".. mousePosition.y, 5, 30, love.graphics.getWidth(), "left")
-    love.graphics.printf("Speed: "..  ballSpeed, 5, 60, love.graphics.getWidth(), "left")
-    love.graphics.circle("fill", ball.x, ball.y, ball.radius)
+    love.graphics.clear(0.5, 0.8, 1)
+
+    camera:set()
+
+    -- Draw character
+    love.graphics.setColor(1, 0, 0)
+
+    love.graphics.push()
+    love.graphics.translate(character.x, character.y)
+    love.graphics.rectangle("fill", -character.width/2, -character.height/2, character.width, character.height)
+    love.graphics.pop()
+
+    -- Draw obstacles
+    Obstacles.draw()
+
+    camera:unset()
+
+    -- UI
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("Time: " .. math.floor(time), 5, 0, love.graphics.getWidth(), "left")
+    love.graphics.printf("FPS: " .. framerate, 5, 30, love.graphics.getWidth(), "left")
 end
 
 function love.update(dt)
     framerate = math.floor(1 / dt)
     time = time + dt
 
-    -- Apply movement based on input
-    local dx, dy = 0, 0
-    if input.right then dx = 1 end
-    if input.left then dx = -1 end
-    if input.down then dy = 1 end
-    if input.up then dy = -1 end
-    move(dx, dy, dt)
+    -- Gradually increase player speed
+    playerSpeed = playerSpeed + speedIncrement * dt
 
-    ballSpeed = math.abs(ball.velocity.x) + math.abs(ball.velocity.y)
-
-    -- Apply movement
-    ball.x = ball.x + ball.velocity.x 
-    if ball.x > scrWidth - ball.radius then
-        ball.x = scrWidth - ball.radius
-        ball.velocity.x = 0
-    elseif ball.x < 0 then
-        ball.x = 0 + ball.radius
-        ball.velocity.x = 0
+    -- Update character
+    if character.isFlying then
+        character.velocityY = character.velocityY + jetpackForce * dt
+    else
+        character.velocityY = character.velocityY + gravity * dt
     end
 
-    ball.y = ball.y + ball.velocity.y
-    if ball.y > scrHeight - ball.radius then
-        ball.y = scrHeight - ball.radius
-        ball.velocity.y = 0
-    elseif ball.y < 0 then
-        ball.y = 0 + ball.radius
-        ball.velocity.y = 0
+    if character.velocityY < maxSpeedJetpack then
+        character.velocityY = maxSpeedJetpack
     end
-end
 
-function love.keypressed(key, scancode, isrepeat)
-    if scancode == "d" then input.right = true end
-    if scancode == "a" then input.left = true end
-    if scancode == "s" then input.down = true end
-    if scancode == "w" then input.up = true end
-end
+    character.y = character.y + character.velocityY * dt
+    character.x = character.x + playerSpeed * dt  -- Move the character forward
 
-function love.keyreleased(key, scancode)
-    if scancode == "d" then input.right = false end
-    if scancode == "a" then input.left = false end
-    if scancode == "s" then input.down = false end
-    if scancode == "w" then input.up = false end
-end
+    -- Collision with ground and ceiling
+    if character.y > scrHeight - character.height / 2 then
+        character.y = scrHeight - character.height / 2
+        character.velocityY = 0
+    elseif character.y < character.height / 2 then
+        character.y = character.height / 2
+        character.velocityY = 0
+    end
 
-function move(dx, dy, dt)
-    -- Update the ball's velocity based on acceleration
-    ball.velocity.x = ball.velocity.x + acceleration * dx * dt
-    ball.velocity.y = ball.velocity.y + acceleration * dy * dt
+    -- Update camera position (only horizontally)
+    camera:setPosition(character.x - scrWidth / 2.5, 0)
 
-    -- Clamp the velocity to maxSpeed
-    if ball.velocity.x > maxSpeed then ball.velocity.x = maxSpeed end
-    if ball.velocity.x < -maxSpeed then ball.velocity.x = -maxSpeed end
-    if ball.velocity.y > maxSpeed then ball.velocity.y = maxSpeed end
-    if ball.velocity.y < -maxSpeed then ball.velocity.y = -maxSpeed end
+    -- Update obstacles
+    Obstacles.update(dt, camera:getPositionX())
+
+    -- Check if there is no obstacles
+    if Obstacles.isEmpty() then
+        Obstacles.spawnPattern(camera:getPositionX() + scrWidth)
+    end
+
+    -- Check collision with character
+    if Obstacles.checkCollision(character) then
+        --open gameoverscene
+        love.event.quit()
+    end
 end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
         -- LMB
-        mousePosition.x = x
-        mousePosition.y = y
+        character.isFlying = true
     elseif button == 2 then
         -- RMB
     elseif button == 3 then
         -- MMB
     end
+end
+
+function love.mousereleased(x, y, button)
+    if button == 1 then
+        -- LMB
+        character.isFlying = false
+        mousePosX = x
+        mousePosY = y
+    elseif button == 2 then
+        -- RMB
+    elseif button == 3 then
+        -- MMB
+    end
+end
+
+-- Function to project a rectangle on an axis
+local function projectRect(rect, axis)
+    local halfWidth = rect.width / 2
+    local halfHeight = rect.height / 2
+    local corners = {
+        {x = rect.x - halfWidth, y = rect.y - halfHeight},
+        {x = rect.x + halfWidth, y = rect.y - halfHeight},
+        {x = rect.x + halfWidth, y = rect.y + halfHeight},
+        {x = rect.x - halfWidth, y = rect.y + halfHeight}
+    }
+
+    local cosA = math.cos(rect.angle)
+    local sinA = math.sin(rect.angle)
+
+    for i, corner in ipairs(corners) do
+        local x = corner.x - rect.x
+        local y = corner.y - rect.y
+        corners[i].x = x * cosA - y * sinA + rect.x
+        corners[i].y = x * sinA + y * cosA + rect.y
+    end
+
+    local min, max = nil, nil
+
+    for _, corner in ipairs(corners) do
+        local dot = corner.x * axis.x + corner.y * axis.y
+        if not min or dot < min then
+            min = dot
+        end
+        if not max or dot > max then
+            max = dot
+        end
+    end
+
+    return min, max
+end
+
+local function overlap(minA, maxA, minB, maxB)
+    return maxA >= minB and maxB >= minA
+end
+
+function CheckOBBCollision(rectA, rectB)
+    local axes = {
+        {x = math.cos(rectA.angle), y = math.sin(rectA.angle)},
+        {x = -math.sin(rectA.angle), y = math.cos(rectA.angle)},
+        {x = math.cos(rectB.angle), y = math.sin(rectB.angle)},
+        {x = -math.sin(rectB.angle), y = math.cos(rectB.angle)}
+    }
+
+    for _, axis in ipairs(axes) do
+        local minA, maxA = projectRect(rectA, axis)
+        local minB, maxB = projectRect(rectB, axis)
+
+        if not overlap(minA, maxA, minB, maxB) then
+            return false
+        end
+    end
+
+    return true
 end
