@@ -1,58 +1,91 @@
 local time = 0
+local fpsHistory = {}
+local maxFPSHistory = 1000
 local framerate = 0
+
+local distanceTraveled = 0
+local distanceDivisionFactor = 60
 
 local scrWidth, scrHeight
 local gravity = 1100
 local jetpackForce = -2500
 local maxSpeedJetpack = -1000
-local character = {
-    x = 100,
-    y = 200,
-    width = 100,
-    height = 100,
-    velocityY = 0, 
-    isFlying = false,
-    angle = 0          
-}
 
-local playerSpeed = 350
-local speedIncrement = 10
+local groundAndRoofSpacing = 80
+local playerSpeed = 600
+local speedIncrement = 2
 
--- Require the Camera and Obstacles modules
+-- Require the Camera, Obstacles, and Character modules
 local Camera = require("camera")
 local Obstacles = require("obstacles")
+local Character = require("character")
 
 local mousePosX = 0
 local mousePosY = 0
+
+-- Background image variables
+local background
+local backgroundWidth
+local backgroundHeight
+local backgroundScroll = 0
+local backgroundScaleX
+local backgroundScaleY
+
+-- Initialize character
+local character
 
 function love.load()
     math.randomseed(os.time())
 
     scrWidth = love.graphics.getWidth()
     scrHeight = love.graphics.getHeight()
-    
+
     love.graphics.setNewFont(24)
-    
+
+    -- Load background image
+    background = love.graphics.newImage("Sprites/backgroundLoop.png")
+    backgroundWidth, backgroundHeight = background:getDimensions()
+
+    -- Calculate scaling factors to fit the screen height
+    backgroundScaleY = scrHeight / backgroundHeight
+    backgroundScaleX = backgroundScaleY -- Maintain aspect ratio
+
     -- Initialize camera
     camera = Camera
-    camera:setPosition(character.x - scrWidth / 2.5, 0)
-    
+    camera:setPosition(scrWidth / 2.5, 0)
+
     -- Initialize obstacles
-    Obstacles.init(scrWidth, scrHeight)
+    Obstacles.init(scrWidth, scrHeight, groundAndRoofSpacing)
+
+    -- Create a new character instance
+    local playerSize = 100
+    local startY = (scrHeight - groundAndRoofSpacing) - playerSize / 2
+    character = Character:new(100, startY, playerSize, playerSize, "Sprites/CharacterIdle.png")
 end
 
 function love.draw()
     love.graphics.clear(0.5, 0.8, 1)
 
+    love.graphics.setColor(1, 1, 1)
+    -- Draw scrolling background with scaling
+    local totalWidth = backgroundWidth * backgroundScaleX
+    local numTiles = math.ceil(scrWidth / totalWidth) + 1
+
+    for i = 0, numTiles do
+        love.graphics.draw(
+            background,
+            i * totalWidth - (backgroundScroll % totalWidth),
+            0,
+            0,
+            backgroundScaleX,
+            backgroundScaleY
+        )
+    end
+
     camera:set()
 
     -- Draw character
-    love.graphics.setColor(1, 0, 0)
-
-    love.graphics.push()
-    love.graphics.translate(character.x, character.y)
-    love.graphics.rectangle("fill", -character.width/2, -character.height/2, character.width, character.height)
-    love.graphics.pop()
+    character:draw()
 
     -- Draw obstacles
     Obstacles.draw()
@@ -60,38 +93,46 @@ function love.draw()
     camera:unset()
 
     -- UI
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Time: " .. math.floor(time), 5, 0, love.graphics.getWidth(), "left")
-    love.graphics.printf("FPS: " .. framerate, 5, 30, love.graphics.getWidth(), "left")
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.printf("Time: " .. math.floor(time), 5, 0, scrWidth, "left")
+    love.graphics.printf("FPS: " .. math.floor(framerate), 5, 30, scrWidth, "left")
+    love.graphics.printf("Distance: " .. math.floor(distanceTraveled), 5, 60, scrWidth, "left")
+    love.graphics.printf("Speed: " .. math.floor(playerSpeed), 5, 90, scrWidth, "left")
 end
 
 function love.update(dt)
-    framerate = math.floor(1 / dt)
+    local fps = 1 / dt
+    table.insert(fpsHistory, fps)
+    if #fpsHistory > maxFPSHistory then
+        table.remove(fpsHistory, 1)
+    end
+    local sum = 0
+    for _, v in ipairs(fpsHistory) do
+        sum = sum + v
+    end
+    framerate = sum / #fpsHistory
     time = time + dt
 
     -- Gradually increase player speed
     playerSpeed = playerSpeed + speedIncrement * dt
 
+    -- Update distance traveled
+    distanceTraveled = distanceTraveled + (playerSpeed / distanceDivisionFactor) * dt
+
+    -- Update background scroll position
+    backgroundScroll = backgroundScroll + playerSpeed * dt
+
     -- Update character
-    if character.isFlying then
-        character.velocityY = character.velocityY + jetpackForce * dt
-    else
-        character.velocityY = character.velocityY + gravity * dt
-    end
-
-    if character.velocityY < maxSpeedJetpack then
-        character.velocityY = maxSpeedJetpack
-    end
-
-    character.y = character.y + character.velocityY * dt
-    character.x = character.x + playerSpeed * dt  -- Move the character forward
+    character:update(dt, gravity, jetpackForce, maxSpeedJetpack)
+    character.x = character.x + playerSpeed * dt
 
     -- Collision with ground and ceiling
-    if character.y > scrHeight - character.height / 2 then
-        character.y = scrHeight - character.height / 2
+    local _, charY = character:getPosition()
+    if charY > (scrHeight - groundAndRoofSpacing) - character.height / 2 then
+        character.y = (scrHeight - groundAndRoofSpacing) - character.height / 2
         character.velocityY = 0
-    elseif character.y < character.height / 2 then
-        character.y = character.height / 2
+    elseif charY < groundAndRoofSpacing + character.height / 2 then
+        character.y = groundAndRoofSpacing + character.height / 2
         character.velocityY = 0
     end
 
@@ -101,14 +142,14 @@ function love.update(dt)
     -- Update obstacles
     Obstacles.update(dt, camera:getPositionX())
 
-    -- Check if there is no obstacles
+    -- Check if there are no obstacles
     if Obstacles.isEmpty() then
         Obstacles.spawnPattern(camera:getPositionX() + scrWidth)
     end
 
     -- Check collision with character
     if Obstacles.checkCollision(character) then
-        --open gameoverscene
+        -- open game over scene
         love.event.quit()
     end
 end
@@ -116,24 +157,16 @@ end
 function love.mousepressed(x, y, button)
     if button == 1 then
         -- LMB
-        character.isFlying = true
-    elseif button == 2 then
-        -- RMB
-    elseif button == 3 then
-        -- MMB
+        character:setFlying(true)
     end
 end
 
 function love.mousereleased(x, y, button)
     if button == 1 then
         -- LMB
-        character.isFlying = false
+        character:setFlying(false)
         mousePosX = x
         mousePosY = y
-    elseif button == 2 then
-        -- RMB
-    elseif button == 3 then
-        -- MMB
     end
 end
 
