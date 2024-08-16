@@ -12,7 +12,7 @@ function MainMenuScene:new()
     setmetatable(mainMenuScene, MainMenuScene)
 
     -- Create and add buttons to the scene
-    local button = Button:new(100, 100, 200, 50, "Start Game", OpenGameScene)
+    local button = Button:new(100, 100, 200, 50, "Start Game", OpenGameScene, 10)
 
     mainMenuScene:addObject(button)
     return mainMenuScene

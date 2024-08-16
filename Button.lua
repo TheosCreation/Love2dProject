@@ -1,7 +1,7 @@
 Button = {}
 Button.__index = Button
 
-function Button:new(x, y, width, height, text, onClick)
+function Button:new(x, y, width, height, text, onClick, radiusX, radiusY)
     local button = setmetatable({}, Button)
     button.x = x
     button.y = y
@@ -10,6 +10,8 @@ function Button:new(x, y, width, height, text, onClick)
     button.text = text
     button.onClick = onClick
     button.isHovered = false
+    button.radiusX = radiusX or 0
+    button.radiusY = radiusY or button.radiusX -- Use radiusX if radiusY is not provided
     return button
 end
 
@@ -24,7 +26,14 @@ function Button:draw()
     else
         love.graphics.setColor(0.5, 0.5, 0.5)
     end
-    love.graphics.rectangle("fill", self.x, self.y, self.width, self.height)
+    
+    if self.radiusX > 0 and self.radiusY > 0 then
+        -- Draw rounded rectangle
+        love.graphics.rectangle("fill", self.x, self.y, self.width, self.height, self.radiusX, self.radiusY)
+    else
+        -- Draw regular rectangle
+        love.graphics.rectangle("fill", self.x, self.y, self.width, self.height)
+    end
 
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf(self.text, self.x, self.y + (self.height / 2) - 6, self.width, "center")
