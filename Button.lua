@@ -1,13 +1,15 @@
 Button = {}
 Button.__index = Button
 
-function Button:new(x, y, width, height, text, onClick, radiusX, radiusY)
+function Button:new(x, y, width, height, text, font, fontSize, onClick, radiusX, radiusY)
     local button = setmetatable({}, Button)
     button.x = x
     button.y = y
     button.width = width
     button.height = height
     button.text = text
+    button.font = font
+    button.fontSize = fontSize
     button.onClick = onClick
     button.isHovered = false
     button.radiusX = radiusX or 0
@@ -21,6 +23,8 @@ function Button:update(dt)
 end
 
 function Button:draw()
+    love.graphics.setFont(self.font, self.fontSize)
+
     if self.isHovered then
         love.graphics.setColor(0.7, 0.7, 0.7)
     else

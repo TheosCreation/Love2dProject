@@ -103,8 +103,7 @@ function GameScene:update(dt)
 
     -- Check collision with character
     if Obstacles.checkCollision(self.character) then
-        -- Handle game over (you might want to transition to a GameOverScene here)
-        love.event.quit()
+        currentScene = MainMenuScene:new()
     end
 end
 
