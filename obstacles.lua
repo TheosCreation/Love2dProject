@@ -28,22 +28,6 @@ end
 
 local patternWeights = {
     {pattern = function(spawnX)
-        local spacing = 800
-        local angles = {0, -45, 45}
-        local lengths = {160, 240, 320}
-        local chanceOfRotation = 0.2
-
-        for i = 1, 3 do
-            local randomAngle = angles[math.random(1, #angles)]
-            local randomLength = lengths[math.random(1, #lengths)]
-            local rotationDirection = getRotationDirection(chanceOfRotation)
-            local rotationSpeed = math.random() * 2
-
-            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
-        end
-    end, weight = 3},
-
-    {pattern = function(spawnX)
         local spacing = 750
         local angles = {0, -45, 45}
         local lengths = {160, 240, 320}
@@ -55,7 +39,7 @@ local patternWeights = {
             local rotationDirection = getRotationDirection(chanceOfRotation)
             local rotationSpeed = math.random() * 2
 
-            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
+            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing /2) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
         end
     end, weight = 3},
 
@@ -71,13 +55,13 @@ local patternWeights = {
             local rotationDirection = getRotationDirection(chanceOfRotation)
             local rotationSpeed = math.random() * 2
 
-            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
+            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing / 2) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
         end
     end, weight = 2},
 
     {pattern = function(spawnX)
-        local length = 1000
-        local gap = 100
+        local length = 1500
+        local gap = 200
 
         obstacles.spawn(spawnX, gap + obstacleWidth / 2, length, 90, 0)
         obstacles.spawn(spawnX, scrHeight - (gap + obstacleWidth / 2), length, 90, 0)
@@ -157,6 +141,64 @@ end
 
 function obstacles.isEmpty()
     return #obstacleList == 0
+end
+function CheckOBBCollision(rectA, rectB)
+    local axes = {
+        {x = math.cos(rectA.angle), y = math.sin(rectA.angle)},
+        {x = -math.sin(rectA.angle), y = math.cos(rectA.angle)},
+        {x = math.cos(rectB.angle), y = math.sin(rectB.angle)},
+        {x = -math.sin(rectB.angle), y = math.cos(rectB.angle)}
+    }
+
+    for _, axis in ipairs(axes) do
+        local minA, maxA = projectRect(rectA, axis)
+        local minB, maxB = projectRect(rectB, axis)
+
+        if not overlap(minA, maxA, minB, maxB) then
+            return false
+        end
+    end
+
+    return true
+end
+
+function projectRect(rect, axis)
+    local halfWidth = rect.width / 2
+    local halfHeight = rect.height / 2
+    local corners = {
+        {x = rect.x - halfWidth, y = rect.y - halfHeight},
+        {x = rect.x + halfWidth, y = rect.y - halfHeight},
+        {x = rect.x + halfWidth, y = rect.y + halfHeight},
+        {x = rect.x - halfWidth, y = rect.y + halfHeight}
+    }
+
+    local cosA = math.cos(rect.angle)
+    local sinA = math.sin(rect.angle)
+
+    for i, corner in ipairs(corners) do
+        local x = corner.x - rect.x
+        local y = corner.y - rect.y
+        corners[i].x = x * cosA - y * sinA + rect.x
+        corners[i].y = x * sinA + y * cosA + rect.y
+    end
+
+    local min, max = nil, nil
+
+    for _, corner in ipairs(corners) do
+        local dot = corner.x * axis.x + corner.y * axis.y
+        if not min or dot < min then
+            min = dot
+        end
+        if not max or dot > max then
+            max = dot
+        end
+    end
+
+    return min, max
+end
+
+function overlap(minA, maxA, minB, maxB)
+return maxA >= minB and maxB >= minA
 end
 
 return obstacles
