@@ -1,6 +1,6 @@
 local obstacles = {}
 
-local scrWidth, scrHeight, grSpacing
+local scrWidth, scrHeight, grSpacing, animations, currentAnimation
 
 local spawnXOffset = 500
 local obstacleWidth = 60
@@ -9,6 +9,16 @@ function obstacles.init(screenWidth, screenHeight, groundAndRoofSpacing)
     scrWidth = screenWidth
     scrHeight = screenHeight
     grSpacing = groundAndRoofSpacing
+    animations = {}
+    currentAnimation = nil
+end
+
+function obstacles.addAnimation(name, animation)
+    animations[name] = animation
+end
+
+function obstacles.setAnimation(name)
+    currentAnimation = animations[name]
 end
 
 local obstacleList = {}
@@ -107,6 +117,10 @@ function obstacles.spawnPattern(spawnX)
 end
 
 function obstacles.update(dt, cameraX)
+    if currentAnimation then
+        currentAnimation:update(dt)
+    end
+
     for i = #obstacleList, 1, -1 do
         local obs = obstacleList[i]
 
@@ -120,13 +134,26 @@ function obstacles.update(dt, cameraX)
 end
 
 function obstacles.draw()
-    love.graphics.setColor(0, 0, 0)
+    love.graphics.setColor(1, 1, 1)
     for _, obs in ipairs(obstacleList) do
         love.graphics.push()
-        love.graphics.translate(obs.x, obs.y)
-        love.graphics.rotate(obs.angle)
-        love.graphics.rectangle("fill", -obs.width/2, -obs.height/2, obs.width, obs.height)
-        love.graphics.pop()
+        love.graphics.translate(obs.x, obs.y) -- Move to obstacle position
+        love.graphics.rotate(obs.angle)       -- Rotate the obstacle
+
+        -- Draw the animation at the center of the obstacle with proper scaling
+        if currentAnimation then
+            local scaleX = obs.width / currentAnimation.frameWidth
+            local scaleY = obs.height / currentAnimation.frameHeight
+            currentAnimation:draw(
+                0, 0,                -- Draw at the translated and rotated origin (center of obstacle)
+                0,                   -- Rotation angle is handled by love.graphics.rotate, so use 0 here
+                scaleX, scaleY,      -- Scaling factors
+                currentAnimation.frameWidth / 2,  -- Origin X (center of the animation frame)
+                currentAnimation.frameHeight / 2  -- Origin Y (center of the animation frame)
+            )
+        end
+
+        love.graphics.pop() -- Restore previous graphics state
     end
 end
 

@@ -1,7 +1,7 @@
 Text = {}
 Text.__index = Text
 
-function Text:new(text, x, y, font, fontSize, width, height, wrap)
+function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
     local t = setmetatable({}, Text)
     
     -- Create or set the font
@@ -19,6 +19,10 @@ function Text:new(text, x, y, font, fontSize, width, height, wrap)
     t.height = height
     t.wrap = wrap
     t.textWrapped = {}
+    t.pivotX = pivotX or 0.5
+    t.pivotY = pivotY or 0.5
+    t.anchorX = anchorX or 0
+    t.anchorY = anchorY or 0
 
     -- Wrap text if needed
     if t.wrap then
@@ -30,7 +34,7 @@ end
 
 function Text:wrapText()
     -- Ensure the font is set before wrapping text
-    love.graphics.setFont(self.font, self.fontSize)
+    love.graphics.setFont(self.font)
     
     -- Wrap text using the specified width
     local lines = love.graphics.getFont():getWrap(self.text, self.width)
@@ -77,16 +81,19 @@ function Text:getSize()
 end
 
 function Text:draw()
-    love.graphics.setFont(self.font, self.fontSize)
+    local textX = self.x - self.width * self.pivotX + love.graphics.getWidth() * self.anchorX
+    local textY = self.y - self.height * self.pivotY + love.graphics.getHeight() * self.anchorY
+
+    love.graphics.setFont(self.font)
     
     if self.wrap then
         -- Draw each line of wrapped text
         for i, line in ipairs(self.textWrapped) do
-            love.graphics.print(line, self.x, self.y + (i - 1) * self.font:getHeight())
+            love.graphics.print(line, textX, textY + (i - 1) * self.font:getHeight())
         end
     else
         -- Draw the single line of text
-        love.graphics.print(self.text, self.x, self.y)
+        love.graphics.print(self.text, textX, textY)
     end
 end
 

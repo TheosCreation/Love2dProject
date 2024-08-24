@@ -2,6 +2,7 @@ local Scene = require("Scene")
 local Camera = require("camera")
 local Obstacles = require("obstacles")
 local Character = require("character")
+local Text = require("Text")
 
 GameScene = {}
 GameScene.__index = GameScene
@@ -24,7 +25,7 @@ function GameScene:new()
     gameScene.scrHeight = love.graphics.getHeight()
     gameScene.gravity = 1250
     gameScene.jetpackForce = -3000
-    gameScene.maxSpeedJetpack = -900
+    gameScene.maxSpeedJetpack = -600
     gameScene.groundAndRoofSpacing = 80
     gameScene.playerSpeed = 600
     gameScene.speedIncrement = 2
@@ -43,10 +44,30 @@ function GameScene:new()
     -- Initialize obstacles
     Obstacles.init(gameScene.scrWidth, gameScene.scrHeight, gameScene.groundAndRoofSpacing)
 
-    -- Create a new character instance
+    local sawbladeIdle = Animation:new(love.graphics.newImage("Sprites/sawblade.png"), 64, 32, 0.5)
+    Obstacles.addAnimation("idle", sawbladeIdle)
+    Obstacles.setAnimation("idle")
+
+    -- Create a new player instance
     local playerSize = 100
     local startY = (gameScene.scrHeight - gameScene.groundAndRoofSpacing) - playerSize / 2
-    gameScene.character = Character:new(100, startY, playerSize, playerSize, "Sprites/CharacterIdle.png")
+    gameScene.character = Character:new(100, startY, playerSize, playerSize)
+
+    -- Create animations for the player
+    local flyingAnimation = Animation:new(love.graphics.newImage("Sprites/flying_spritesheet.png"), 64, 64, 2)
+    gameScene.character:addAnimation("flying", flyingAnimation)
+
+    local walkingAnimations = Animation:new(love.graphics.newImage("Sprites/walking_spritesheet.png"), 64, 64, 0.5)
+    gameScene.character:addAnimation("walking", walkingAnimations)
+
+    -- Set the inital animation state
+    gameScene.character:setAnimation("walking")
+
+    -- Initialize debug text
+    gameScene.timeText = Text:new("Time: 0", 5, 0, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
+    gameScene.fpsText = Text:new("FPS: 0", 5, 30, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
+    gameScene.distanceText = Text:new("Distance: 0", 5, 60, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
+    gameScene.speedText = Text:new("Speed: 0", 5, 90, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
 
     return gameScene
 end
@@ -85,6 +106,7 @@ function GameScene:update(dt)
     if charY > (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2 then
         self.character.y = (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2
         self.character.velocityY = 0
+        self.character:setAnimation("walking")
     elseif charY < self.groundAndRoofSpacing + self.character.height / 2 then
         self.character.y = self.groundAndRoofSpacing + self.character.height / 2
         self.character.velocityY = 0
@@ -105,12 +127,22 @@ function GameScene:update(dt)
     if Obstacles.checkCollision(self.character) then
         currentScene = MainMenuScene:new()
     end
+
+    -- Update debug text
+    self.timeText:setText("Time: " .. math.floor(self.time))
+    self.fpsText:setText("FPS: " .. math.floor(self.framerate))
+    self.distanceText:setText("Distance: " .. math.floor(self.distanceTraveled))
+    self.speedText:setText("Speed: " .. math.floor(self.playerSpeed))
 end
 
 function GameScene:draw()
     love.graphics.clear(0.5, 0.8, 1)
 
     love.graphics.setColor(1, 1, 1)
+
+    local myShader = ShaderManager:getShader("myShader")
+    love.graphics.setShader(myShader)
+
     -- Draw scrolling background with scaling
     local totalWidth = self.backgroundWidth * self.backgroundScaleX
     local numTiles = math.ceil(self.scrWidth / totalWidth) + 1
@@ -136,20 +168,22 @@ function GameScene:draw()
 
     self.camera:unset()
 
-    -- UI
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.printf("Time: " .. math.floor(self.time), 5, 0, self.scrWidth, "left")
-    love.graphics.printf("FPS: " .. math.floor(self.framerate), 5, 30, self.scrWidth, "left")
-    love.graphics.printf("Distance: " .. math.floor(self.distanceTraveled), 5, 60, self.scrWidth, "left")
-    love.graphics.printf("Speed: " .. math.floor(self.playerSpeed), 5, 90, self.scrWidth, "left")
+    -- Draw UI texts
+    self.timeText:draw()
+    self.fpsText:draw()
+    self.distanceText:draw()
+    self.speedText:draw()
 
     Scene.draw(self) -- Draw all objects in the scene
+
+    love.graphics.setShader()
 end
 
 function GameScene:mousepressed(x, y, button)
     if button == 1 then
         -- LMB
         self.character:setFlying(true)
+        self.character:setAnimation("flying")
     end
 end
 

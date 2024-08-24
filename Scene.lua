@@ -1,3 +1,7 @@
+ShaderManager = require("ShaderManager")
+TextureManager = require("TextureManager")
+Animation = require("Animation")
+
 Scene = {}
 Scene.__index = Scene
 

@@ -1,7 +1,7 @@
 Button = {}
 Button.__index = Button
 
-function Button:new(x, y, width, height, text, font, fontSize, onClick, radiusX, radiusY)
+function Button:new(x, y, width, height, text, font, fontSize, onClick, radiusX, radiusY, pivotX, pivotY, anchorX, anchorY)
     local button = setmetatable({}, Button)
     button.x = x
     button.y = y
@@ -14,15 +14,24 @@ function Button:new(x, y, width, height, text, font, fontSize, onClick, radiusX,
     button.isHovered = false
     button.radiusX = radiusX or 0
     button.radiusY = radiusY or button.radiusX -- Use radiusX if radiusY is not provided
+    button.pivotX = pivotX or 0.5
+    button.pivotY = pivotY or 0.5
+    button.anchorX = anchorX or 0
+    button.anchorY = anchorY or 0
     return button
 end
 
 function Button:update(dt)
     local mx, my = love.mouse.getPosition()
-    self.isHovered = mx > self.x and mx < self.x + self.width and my > self.y and my < self.y + self.height
+    local buttonX = self.x - self.width * self.pivotX + love.graphics.getWidth() * self.anchorX
+    local buttonY = self.y - self.height * self.pivotY + love.graphics.getHeight() * self.anchorY
+    self.isHovered = mx > buttonX and mx < buttonX + self.width and my > buttonY and my < buttonY + self.height
 end
 
 function Button:draw()
+    local buttonX = self.x - self.width * self.pivotX + love.graphics.getWidth() * self.anchorX
+    local buttonY = self.y - self.height * self.pivotY + love.graphics.getHeight() * self.anchorY
+
     love.graphics.setFont(self.font, self.fontSize)
 
     if self.isHovered then
@@ -33,20 +42,32 @@ function Button:draw()
     
     if self.radiusX > 0 and self.radiusY > 0 then
         -- Draw rounded rectangle
-        love.graphics.rectangle("fill", self.x, self.y, self.width, self.height, self.radiusX, self.radiusY)
+        love.graphics.rectangle("fill", buttonX, buttonY, self.width, self.height, self.radiusX, self.radiusY)
     else
         -- Draw regular rectangle
-        love.graphics.rectangle("fill", self.x, self.y, self.width, self.height)
+        love.graphics.rectangle("fill", buttonX, buttonY, self.width, self.height)
     end
 
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf(self.text, self.x, self.y + (self.height / 2) - 6, self.width, "center")
+    love.graphics.printf(self.text, buttonX, buttonY + (self.height / 2) - 6, self.width, "center")
 end
 
 function Button:mousepressed(x, y, button)
-    if button == 1 and self.isHovered then
+    local buttonX = self.x - self.width * self.pivotX + love.graphics.getWidth() * self.anchorX
+    local buttonY = self.y - self.height * self.pivotY + love.graphics.getHeight() * self.anchorY
+
+    if button == 1 and x > buttonX and x < buttonX + self.width and y > buttonY and y < buttonY + self.height then
         self:onClick()
     end
+end
+
+function Button:setPosition(x, y)
+    self.x = x
+    self.y = y
+end
+
+function Button:getPosition()
+    return self.x, self.y
 end
 
 return Button

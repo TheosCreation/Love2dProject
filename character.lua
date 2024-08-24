@@ -1,7 +1,7 @@
 local Character = {}
 Character.__index = Character
 
-function Character:new(x, y, width, height, spritePath)
+function Character:new(x, y, width, height)
     local instance = setmetatable({}, Character)
     instance.x = x
     instance.y = y
@@ -10,20 +10,31 @@ function Character:new(x, y, width, height, spritePath)
     instance.velocityY = 0
     instance.isFlying = false
     instance.angle = 0
-    instance.sprite = love.graphics.newImage(spritePath)
-    instance.spriteScaleX = width / instance.sprite:getWidth()
-    instance.spriteScaleY = height / instance.sprite:getHeight()
-
+    instance.animations = {}
+    instance.currentAnimation = nil
     return instance
 end
 
+function Character:addAnimation(name, animation)
+    self.animations[name] = animation
+end
+
+function Character:setAnimation(name)
+    self.currentAnimation = self.animations[name]
+end
+
 function Character:update(dt, gravity, jetpackForce, maxSpeedJetpack)
+    if self.currentAnimation then
+        self.currentAnimation:update(dt)
+    end
+
     if self.isFlying then
         self.velocityY = self.velocityY + jetpackForce * dt
     else
         self.velocityY = self.velocityY + gravity * dt
     end
 
+    -- Clamp the velocity to the maximum speed for jetpack usage
     if self.velocityY < maxSpeedJetpack then
         self.velocityY = maxSpeedJetpack
     end
@@ -33,17 +44,10 @@ end
 
 function Character:draw()
     love.graphics.setColor(1, 1, 1)
-    -- Centering the sprite
-    love.graphics.draw(
-        self.sprite,
-        self.x,
-        self.y,
-        self.angle,
-        self.spriteScaleX,
-        self.spriteScaleY,
-        self.sprite:getWidth() / 2,
-        self.sprite:getHeight() / 2
-    )
+    
+    if self.currentAnimation then
+        self.currentAnimation:draw(self.x, self.y, self.spriteScaleX, self.spriteScaleY)
+    end
 end
 
 function Character:setFlying(isFlying)
