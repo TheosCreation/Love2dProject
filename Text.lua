@@ -1,10 +1,10 @@
 Text = {}
 Text.__index = Text
 
-function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
+function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY, color)
     local t = setmetatable({}, Text)
     
-    -- Create or set the font
+    -- Create or set the font with the specified fontSize
     if type(font) == "string" then
         t.font = love.graphics.newFont(font, fontSize)
     else
@@ -14,7 +14,6 @@ function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivot
     t.text = text
     t.x = x
     t.y = y
-    t.fontSize = fontSize
     t.width = width
     t.height = height
     t.wrap = wrap
@@ -23,6 +22,8 @@ function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivot
     t.pivotY = pivotY or 0.5
     t.anchorX = anchorX or 0
     t.anchorY = anchorY or 0
+    t.color = color or {1, 1, 1, 1} -- Default to white color (RGBA)
+    t.fontSize = fontSize -- Store the font size
 
     -- Wrap text if needed
     if t.wrap then
@@ -33,17 +34,11 @@ function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivot
 end
 
 function Text:wrapText()
-    -- Ensure the font is set before wrapping text
     love.graphics.setFont(self.font)
-    
-    -- Wrap text using the specified width
     local lines = love.graphics.getFont():getWrap(self.text, self.width)
-    
-    -- Ensure lines is a table
     if type(lines) == "table" then
         self.textWrapped = lines
     else
-        -- Handle the case where getWrap does not return a table
         self.textWrapped = {self.text}
     end
 end
@@ -80,21 +75,42 @@ function Text:getSize()
     return self.width, self.height
 end
 
+function Text:setColor(color)
+    self.color = color
+end
+
+function Text:getColor()
+    return self.color
+end
+
+function Text:setFontSize(fontSize)
+    self.fontSize = fontSize
+    self.font = love.graphics.newFont(self.font:getFilename(), fontSize)
+    if self.wrap then
+        self:wrapText()
+    end
+end
+
+function Text:getFontSize()
+    return self.fontSize
+end
+
 function Text:draw()
     local textX = self.x - self.width * self.pivotX + love.graphics.getWidth() * self.anchorX
     local textY = self.y - self.height * self.pivotY + love.graphics.getHeight() * self.anchorY
 
     love.graphics.setFont(self.font)
+    love.graphics.setColor(self.color) -- Set the text color
     
     if self.wrap then
-        -- Draw each line of wrapped text
         for i, line in ipairs(self.textWrapped) do
             love.graphics.print(line, textX, textY + (i - 1) * self.font:getHeight())
         end
     else
-        -- Draw the single line of text
         love.graphics.print(self.text, textX, textY)
     end
+    
+    love.graphics.setColor(1, 1, 1, 1) -- Reset to default color (white)
 end
 
 return Text

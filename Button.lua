@@ -8,7 +8,12 @@ function Button:new(x, y, width, height, text, font, fontSize, onClick, radiusX,
     button.width = width
     button.height = height
     button.text = text
-    button.font = font
+    
+    if type(font) == "string" then
+        button.font = love.graphics.newFont(font, fontSize)
+    else
+        button.font = font or love.graphics.newFont(fontSize)
+    end
     button.fontSize = fontSize
     button.onClick = onClick
     button.isHovered = false
@@ -31,7 +36,6 @@ end
 function Button:draw()
     local buttonX = self.x - self.width * self.pivotX + love.graphics.getWidth() * self.anchorX
     local buttonY = self.y - self.height * self.pivotY + love.graphics.getHeight() * self.anchorY
-
     love.graphics.setFont(self.font, self.fontSize)
 
     if self.isHovered then

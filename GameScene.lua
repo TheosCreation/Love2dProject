@@ -51,7 +51,8 @@ function GameScene:new()
     -- Create a new player instance
     local playerSize = 100
     local startY = (gameScene.scrHeight - gameScene.groundAndRoofSpacing) - playerSize / 2
-    gameScene.character = Character:new(100, startY, playerSize, playerSize)
+    local particleImage = love.graphics.newImage("Sprites/expolsion.png")
+    gameScene.character = Character:new(100, startY, playerSize, playerSize, particleImage)
 
     -- Create animations for the player
     local flyingAnimation = Animation:new(love.graphics.newImage("Sprites/flying_spritesheet.png"), 64, 64, 2)
@@ -63,11 +64,9 @@ function GameScene:new()
     -- Set the inital animation state
     gameScene.character:setAnimation("walking")
 
-    -- Initialize debug text
-    gameScene.timeText = Text:new("Time: 0", 5, 0, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
-    gameScene.fpsText = Text:new("FPS: 0", 5, 30, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
-    gameScene.distanceText = Text:new("Distance: 0", 5, 60, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
-    gameScene.speedText = Text:new("Speed: 0", 5, 90, "Fonts/Roboto-Black.ttf", 20, gameScene.scrWidth, 30, false)
+    -- Initialize debug text  new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
+    gameScene.distanceText = Text:new("Distance: 0", 10, 150, "Fonts/Roboto-Black.ttf", 30, 20, 30, false, 0, 0, 0, 0)
+    gameScene.distanceText:setColor({0,0,0,1})
 
     return gameScene
 end
@@ -106,8 +105,12 @@ function GameScene:update(dt)
     if charY > (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2 then
         self.character.y = (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2
         self.character.velocityY = 0
-        self.character:setAnimation("walking")
-    elseif charY < self.groundAndRoofSpacing + self.character.height / 2 then
+        self.character.isGrounded = true
+    else 
+        self.character.isGrounded = false
+    end
+        
+    if charY < self.groundAndRoofSpacing + self.character.height / 2 then
         self.character.y = self.groundAndRoofSpacing + self.character.height / 2
         self.character.velocityY = 0
     end
@@ -125,14 +128,11 @@ function GameScene:update(dt)
 
     -- Check collision with character
     if Obstacles.checkCollision(self.character) then
-        currentScene = MainMenuScene:new()
+        currentScene = GameOverScene:new(self.distanceTraveled)
     end
 
     -- Update debug text
-    self.timeText:setText("Time: " .. math.floor(self.time))
-    self.fpsText:setText("FPS: " .. math.floor(self.framerate))
     self.distanceText:setText("Distance: " .. math.floor(self.distanceTraveled))
-    self.speedText:setText("Speed: " .. math.floor(self.playerSpeed))
 end
 
 function GameScene:draw()
@@ -169,10 +169,7 @@ function GameScene:draw()
     self.camera:unset()
 
     -- Draw UI texts
-    self.timeText:draw()
-    self.fpsText:draw()
     self.distanceText:draw()
-    self.speedText:draw()
 
     Scene.draw(self) -- Draw all objects in the scene
 
