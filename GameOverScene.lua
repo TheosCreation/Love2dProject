@@ -17,25 +17,26 @@ function GameOverScene:new(distanceTravelled)
     local gameOverScene = Scene:new()
     setmetatable(gameOverScene, GameOverScene)
 
-    local myImage = Image:new("Sprites/menubackground.png", 0, 0)
-    myImage:fitToScreen()
+    -- Background Image new(image, anchorX, anchorY, width, height, x, y)
+    local myImage = Image:new(TextureManager:getTexture("white"), 0, 0)
+    myImage:setColor(uiBackgroundColor)
+    myImage:stretchToScreen()
     gameOverScene:addObject(myImage)
 
-    -- Create a Button with the Text object
-    local startButton = Button:new(0, -125, 200, 50, "Play Again", "Fonts/Roboto-Black.ttf", 32, self.OpenGameScene, 10, 10, 0.5, 0.5, 0.5, 0.5)
-    gameOverScene:addObject(startButton)
-    
-    local startButton = Button:new(0, 125, 200, 50, "Exit To Main Menu", "Fonts/Roboto-Black.ttf", 32, self.OpenMainMenu, 10, 10, 0.5, 0.5, 0.5, 0.5)
-    gameOverScene:addObject(startButton)
-    
-    --new text for the title new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
-    local TitleText = Text:new("Game Over", 0, -375, "Fonts/Roboto-Black.ttf", 32, 100, 100, true, 0.5, 0.5, 0.5, 0.5)
-    TitleText:setColor({0,0,0,1})
+    -- Title Text          new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
+    local TitleText = Text:new("You Flew", 512, 370, "Fonts/VCR_OSD_MONO_1.001.ttf", 96, 1232, 113, false, 0, 0, 0, 0)
+    TitleText:setColor(white)
     gameOverScene:addObject(TitleText)
-
-    local DistanceTravelledText = Text:new("Distance Travelled: " .. math.floor(distanceTravelled), 0, -325, "Fonts/Roboto-Black.ttf", 32, 100, 100, true, 0.5, 0.5, 0.5, 0.5)
-    DistanceTravelledText:setColor({0,0,0,1})
+    
+    local DistanceTravelledText = Text:new(math.floor(distanceTravelled) .. "M", 512, 483, "Fonts/VCR_OSD_MONO_1.001.ttf", 150, 1232, 113, false, 0, 0, 0, 0)
+    DistanceTravelledText:setColor(white)
     gameOverScene:addObject(DistanceTravelledText)
+
+    -- Next Button         new(x, y, width, height, text, font, fontSize, onClick, radiusX, radiusY, pivotX, pivotY, anchorX, anchorY)
+    local nextButton = Button:new(928, 900, 400, 125, "Next", "Fonts/VCR_OSD_MONO_1.001.ttf", 36, self.OpenMainMenu, 10, 10, 0, 0)
+    nextButton:setColor(white)
+    nextButton:setTextColor({0,0,0,1})
+    gameOverScene:addObject(nextButton)
 
     transition = Transition:new(0.2, ShaderManager:getShader("transitionShader"), TextureManager:getTexture("white"), TextureManager:getTexture("cool"))
     gameOverScene:addObject(transition)
@@ -43,18 +44,13 @@ function GameOverScene:new(distanceTravelled)
     return gameOverScene
 end
 
-function GameOverScene:OpenGameScene()
-    -- Start the transition with a callback that changes the scene after the transition completes
-    transition:start(function()
-        currentScene = GameScene:new()  -- Switch to the GameScene when the transition completes
-    end)
-end
-
 function GameOverScene:OpenMainMenu()
-    -- Start the transition with a callback that changes the scene after the transition completes
-    transition:start(function()
-        currentScene = MainMenuScene:new()  -- Switch to the GameScene when the transition completes
-    end)
+    if(canTransition) then
+        transition:start(function()
+            currentScene = MainMenuScene:new()
+        end)
+    canTransition = false
+    end
 end
 
 function GameOverScene:UpdateTransitionDuration(value)

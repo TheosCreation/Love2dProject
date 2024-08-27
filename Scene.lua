@@ -5,9 +5,15 @@ Animation = require("Animation")
 Scene = {}
 Scene.__index = Scene
 
+uiBackgroundColor = {0.1, 0.625, 1, 1}
+white = {1, 1, 1, 1}
+
+local canTransition
+
 function Scene:new()
     local scene = setmetatable({}, Scene)
     scene.objects = {} -- Store all objects in the scene
+    canTransition = true
     return scene
 end
 

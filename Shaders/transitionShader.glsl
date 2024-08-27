@@ -14,6 +14,6 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 pc)
         return img_color;
     }
 
-    img_color.a = 0;
+    img_color.a = 0.0;
     return img_color;
 }

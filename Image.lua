@@ -2,15 +2,21 @@ Image = {}
 Image.__index = Image
 
 -- Constructor for Image class
-function Image:new(filePath, anchorX, anchorY, width, height)
+function Image:new(image, anchorX, anchorY, width, height, x, y)
     local img = setmetatable({}, Image)
-    img.image = love.graphics.newImage(filePath)  -- Load the image from the file path
+    
+    if type(image) == "string" then
+        img.image = love.graphics.newImage(image)
+    else
+        img.image = image
+    end
     img.anchorX = anchorX or 0.5  -- Default to center if not specified
     img.anchorY = anchorY or 0.5  -- Default to center if not specified
     img.width = width or img.image:getWidth()  -- Use provided width or image's width
     img.height = height or img.image:getHeight()  -- Use provided height or image's height
-    img.x = 0
-    img.y = 0
+    img.x = x or 0
+    img.y = y or 0
+    img.color = {1, 1, 1, 1}
     return img
 end
 
@@ -34,6 +40,10 @@ end
 -- Get the current size of the image
 function Image:getSize()
     return self.width, self.height
+end
+
+function Image:setColor(color)
+    self.color = color
 end
 
 -- Scale the image to fit the screen size while maintaining aspect ratio
@@ -61,10 +71,22 @@ function Image:fitToScreen()
     self.y = (screenHeight - self.height) / 2
 end
 
+-- Scale the image to stretch to the screen size
+function Image:stretchToScreen()
+    local screenWidth, screenHeight = love.graphics.getDimensions()
+    
+    -- Set the image's width and height to match the screen's dimensions
+    self.width = screenWidth
+    self.height = screenHeight
+    
+    -- Set the position to be centered on the screen
+    self.x = 0
+    self.y = 0
+end
+
 -- Draw the image on the screen
 function Image:draw()
     if not self then
-        print("Error: 'self' is nil in draw method")
         return
     end
 
@@ -74,8 +96,12 @@ function Image:draw()
     local drawX = self.x - (self.anchorX * self.width)
     local drawY = self.y - (self.anchorY * self.height)
 
+    love.graphics.setColor(self.color) -- Set the text color
+
     -- Draw the image with scaling and anchor adjustment
     love.graphics.draw(self.image, drawX, drawY, 0, self.width / imgWidth, self.height / imgHeight)
+
+    love.graphics.setColor(1, 1, 1, 1) -- Reset to default color (white)
 end
 
 return Image

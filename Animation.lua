@@ -1,7 +1,7 @@
 Animation = {}
 Animation.__index = Animation
 
-function Animation:new(image, frameWidth, frameHeight, duration)
+function Animation:new(image, frameWidth, frameHeight, duration, scale)
     local animation = setmetatable({}, Animation)
     animation.spriteSheet = image
     animation.frameWidth = frameWidth
@@ -9,6 +9,7 @@ function Animation:new(image, frameWidth, frameHeight, duration)
     animation.duration = duration or 1
     animation.frames = {}
     animation.currentTime = 0
+    animation.scale = scale or 1
 
     local imageWidth = image:getWidth()
     local imageHeight = image:getHeight()
@@ -55,8 +56,8 @@ function Animation:draw(x, y, rotation, scaleX, scaleY, originX, originY)
         x,                          -- X position
         y,                          -- Y position
         rotation,                   -- Rotation (in radians)
-        scaleX,                     -- X scale
-        scaleY,                     -- Y scale
+        scaleX * self.scale,                     -- X scale
+        scaleY * self.scale,                     -- Y scale
         originX,                    -- X origin (center of the sprite)
         originY                     -- Y origin (center of the sprite)
     )

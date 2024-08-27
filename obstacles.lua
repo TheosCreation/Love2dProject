@@ -1,24 +1,15 @@
 local obstacles = {}
 
-local scrWidth, scrHeight, grSpacing, animations, currentAnimation
 
 local spawnXOffset = 500
-local obstacleWidth = 60
+local obstacleWidthRatio = 0.05 -- Ratio of obstacle width to screen width
 
-function obstacles.init(screenWidth, screenHeight, groundAndRoofSpacing)
+function obstacles.init(screenWidth, screenHeight, groundAndRoofSpacing, _sprite)
     scrWidth = screenWidth
     scrHeight = screenHeight
     grSpacing = groundAndRoofSpacing
-    animations = {}
-    currentAnimation = nil
-end
-
-function obstacles.addAnimation(name, animation)
-    animations[name] = animation
-end
-
-function obstacles.setAnimation(name)
-    currentAnimation = animations[name]
+    sprite = _sprite
+    obstacleWidth = scrWidth * obstacleWidthRatio -- Scale the obstacle width based on the screen width
 end
 
 local obstacleList = {}
@@ -38,9 +29,9 @@ end
 
 local patternWeights = {
     {pattern = function(spawnX)
-        local spacing = 750
+        local spacing = 0.75 * scrWidth -- Scale spacing based on screen width
         local angles = {0, -45, 45}
-        local lengths = {160, 240, 320}
+        local lengths = {scrHeight * 0.15, scrHeight * 0.25, scrHeight * 0.35} -- Scale lengths based on screen height
         local chanceOfRotation = 0.2
 
         for i = 1, 8 do
@@ -49,14 +40,14 @@ local patternWeights = {
             local rotationDirection = getRotationDirection(chanceOfRotation)
             local rotationSpeed = math.random() * 2
 
-            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing /2) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
+            obstacles.spawn(spawnX + i * spacing, math.random(grSpacing + randomLength / 2, (scrHeight - grSpacing / 2) - randomLength / 2), randomLength, randomAngle, rotationDirection * rotationSpeed)
         end
     end, weight = 3},
 
     {pattern = function(spawnX)
-        local spacing = 750
+        local spacing = 0.75 * scrWidth -- Scale spacing based on screen width
         local angles = {0, -45, 45}
-        local lengths = {160, 240, 320}
+        local lengths = {scrHeight * 0.15, scrHeight * 0.25, scrHeight * 0.35} -- Scale lengths based on screen height
         local chanceOfRotation = 0.2
 
         for i = 1, 15 do
@@ -70,8 +61,8 @@ local patternWeights = {
     end, weight = 2},
 
     {pattern = function(spawnX)
-        local length = 1500
-        local gap = 200
+        local length = scrHeight * 0.8 -- Scale the length based on screen height
+        local gap = scrHeight * 0.1 -- Scale the gap based on screen height
 
         obstacles.spawn(spawnX, gap + obstacleWidth / 2, length, 90, 0)
         obstacles.spawn(spawnX, scrHeight - (gap + obstacleWidth / 2), length, 90, 0)
@@ -98,7 +89,7 @@ end
 
 function obstacles.spawn(x, y, length, angleDeg, rotation)
     local angle = angleDeg * math.pi / 180 
-    -- Create the obstacle with provide properties
+    -- Create the obstacle with provided properties
     local obstacle = {
         angle = angle,
         height = length,
@@ -117,10 +108,6 @@ function obstacles.spawnPattern(spawnX)
 end
 
 function obstacles.update(dt, cameraX)
-    if currentAnimation then
-        currentAnimation:update(dt)
-    end
-
     for i = #obstacleList, 1, -1 do
         local obs = obstacleList[i]
 
@@ -134,22 +121,23 @@ function obstacles.update(dt, cameraX)
 end
 
 function obstacles.draw()
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(1, 1, 1)  -- Set the color to white (default color for drawing)
     for _, obs in ipairs(obstacleList) do
         love.graphics.push()
-        love.graphics.translate(obs.x, obs.y) -- Move to obstacle position
-        love.graphics.rotate(obs.angle)       -- Rotate the obstacle
+        love.graphics.translate(obs.x, obs.y) -- Move to the obstacle's position
+        love.graphics.rotate(obs.angle)       -- Rotate the obstacle to its current angle
 
-        -- Draw the animation at the center of the obstacle with proper scaling
-        if currentAnimation then
-            local scaleX = obs.width / currentAnimation.frameWidth
-            local scaleY = obs.height / currentAnimation.frameHeight
-            currentAnimation:draw(
-                0, 0,                -- Draw at the translated and rotated origin (center of obstacle)
-                0,                   -- Rotation angle is handled by love.graphics.rotate, so use 0 here
-                scaleX, scaleY,      -- Scaling factors
-                currentAnimation.frameWidth / 2,  -- Origin X (center of the animation frame)
-                currentAnimation.frameHeight / 2  -- Origin Y (center of the animation frame)
+        -- Draw the sprite at the center of the obstacle with proper scaling
+        if sprite then
+            local scaleX = obs.width / sprite:getWidth()
+            local scaleY = obs.height / sprite:getHeight()
+            love.graphics.draw(
+                sprite,
+                0, 0,                       -- Draw the sprite at (0, 0) of the translated and rotated coordinates
+                0,                          -- No additional rotation needed here (already handled by love.graphics.rotate)
+                scaleX, scaleY,             -- Scale the sprite to fit the obstacle dimensions
+                sprite:getWidth() / 2,      -- Offset by half the sprite's width to center it
+                sprite:getHeight() / 2      -- Offset by half the sprite's height to center it
             )
         end
 
@@ -169,6 +157,7 @@ end
 function obstacles.isEmpty()
     return #obstacleList == 0
 end
+
 function CheckOBBCollision(rectA, rectB)
     local axes = {
         {x = math.cos(rectA.angle), y = math.sin(rectA.angle)},
@@ -225,7 +214,7 @@ function projectRect(rect, axis)
 end
 
 function overlap(minA, maxA, minB, maxB)
-return maxA >= minB and maxB >= minA
+    return maxA >= minB and maxB >= minA
 end
 
 return obstacles

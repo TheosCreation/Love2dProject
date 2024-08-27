@@ -1,16 +1,18 @@
 local MainMenuScene = require("MainMenuScene")
 local GameScene = require("GameScene")
 local GameOverScene = require("GameOverScene")
+local HowToPlayScene = require("HowToPlayScene")
 local ShaderManager = require("ShaderManager")
 local TextureManager = require("TextureManager")
 
 function love.load()
+    love.graphics.setDefaultFilter( "nearest" )
     -- Load the shader from the external GLSL file
-    ShaderManager:loadShaderFromFile("myShader", "shaders/myShader.glsl")
-    ShaderManager:loadShaderFromFile("transitionShader", "shaders/transitionShader.glsl")
+    ShaderManager:loadShaderFromFile("transitionShader", "Shaders/transitionShader.glsl")
 
     --load general textures
     TextureManager:loadTextureFromFile("white", "Sprites/white.png");
+    TextureManager:loadTextureFromFile("jetpackKnight", "Sprites/JetpackKnightFlying.png");
 
     --load transitions
     TextureManager:loadTextureFromFile("brick", "Sprites/TransitionMasks/brick.png")
@@ -20,7 +22,7 @@ function love.load()
     TextureManager:loadTextureFromFile("leftToRightMask", "Sprites/TransitionMasks/LeftToRight.jpg")
     TextureManager:loadTextureFromFile("middleOutMask", "Sprites/TransitionMasks/middleOut.jpg")
     TextureManager:loadTextureFromFile("middleUpandDownMask", "Sprites/TransitionMasks/MiddleUpandDown.jpg")
-
+    
     -- Set the initial scene
     currentScene = MainMenuScene:new()
 end

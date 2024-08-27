@@ -1,7 +1,7 @@
 local Scene = require("Scene")
-local Camera = require("camera")
-local Obstacles = require("obstacles")
-local Character = require("character")
+local Camera = require("Camera")
+local Obstacles = require("Obstacles")
+local Character = require("Character")
 local Text = require("Text")
 
 GameScene = {}
@@ -26,7 +26,7 @@ function GameScene:new()
     gameScene.gravity = 1250
     gameScene.jetpackForce = -3000
     gameScene.maxSpeedJetpack = -600
-    gameScene.groundAndRoofSpacing = 80
+    gameScene.groundAndRoofSpacing = gameScene.scrHeight * 0.065
     gameScene.playerSpeed = 600
     gameScene.speedIncrement = 2
 
@@ -42,31 +42,28 @@ function GameScene:new()
     gameScene.camera:setPosition(gameScene.scrWidth / 2.5, 0)
 
     -- Initialize obstacles
-    Obstacles.init(gameScene.scrWidth, gameScene.scrHeight, gameScene.groundAndRoofSpacing)
-
-    local sawbladeIdle = Animation:new(love.graphics.newImage("Sprites/sawblade.png"), 64, 32, 0.5)
-    Obstacles.addAnimation("idle", sawbladeIdle)
-    Obstacles.setAnimation("idle")
+    Obstacles.init(gameScene.scrWidth, gameScene.scrHeight, gameScene.groundAndRoofSpacing, love.graphics.newImage("Sprites/sawblade.png"))
 
     -- Create a new player instance
     local playerSize = 100
     local startY = (gameScene.scrHeight - gameScene.groundAndRoofSpacing) - playerSize / 2
     local particleImage = love.graphics.newImage("Sprites/expolsion.png")
-    gameScene.character = Character:new(100, startY, playerSize, playerSize, particleImage)
+    gameScene.character = Character:new(100, startY, playerSize, playerSize, particleImage, gameScene.scrWidth, gameScene.scrHeight)
 
     -- Create animations for the player
-    local flyingAnimation = Animation:new(love.graphics.newImage("Sprites/flying_spritesheet.png"), 64, 64, 2)
+    local flyingAnimation = Animation:new(love.graphics.newImage("Sprites/JetpackKnightFlying.png"), 36, 36, 2, 2)
     gameScene.character:addAnimation("flying", flyingAnimation)
 
-    local walkingAnimations = Animation:new(love.graphics.newImage("Sprites/walking_spritesheet.png"), 64, 64, 0.5)
+    local walkingAnimations = Animation:new(love.graphics.newImage("Sprites/JetpackKnightWalking.png"), 36, 36, 0.5, 2)
     gameScene.character:addAnimation("walking", walkingAnimations)
 
     -- Set the inital animation state
     gameScene.character:setAnimation("walking")
 
     -- Initialize debug text  new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
-    gameScene.distanceText = Text:new("Distance: 0", 10, 150, "Fonts/Roboto-Black.ttf", 30, 20, 30, false, 0, 0, 0, 0)
+    gameScene.distanceText = Text:new("0M", 25, 130, "Fonts/VCR_OSD_MONO_1.001.ttf", 96, 420, 80, false, 0, 0, 0, 0)
     gameScene.distanceText:setColor({0,0,0,1})
+    gameScene.distanceText:setAlignment("left")
 
     return gameScene
 end
@@ -102,16 +99,19 @@ function GameScene:update(dt)
 
     -- Collision with ground and ceiling
     local _, charY = self.character:getPosition()
-    if charY > (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2 then
-        self.character.y = (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2
+    local groundPosition = (self.scrHeight - self.groundAndRoofSpacing) - self.character.height / 2
+    local ceilingPosition = self.groundAndRoofSpacing + self.character.height / 2
+
+    if charY > groundPosition then
+        self.character.y = groundPosition
         self.character.velocityY = 0
         self.character.isGrounded = true
     else 
         self.character.isGrounded = false
     end
-        
-    if charY < self.groundAndRoofSpacing + self.character.height / 2 then
-        self.character.y = self.groundAndRoofSpacing + self.character.height / 2
+    
+    if charY < ceilingPosition then
+        self.character.y = ceilingPosition
         self.character.velocityY = 0
     end
 
@@ -132,7 +132,7 @@ function GameScene:update(dt)
     end
 
     -- Update debug text
-    self.distanceText:setText("Distance: " .. math.floor(self.distanceTraveled))
+    self.distanceText:setText(math.floor(self.distanceTraveled) .. "M")
 end
 
 function GameScene:draw()
