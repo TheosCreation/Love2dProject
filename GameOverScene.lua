@@ -16,7 +16,7 @@ local transition
 function GameOverScene:new(distanceTravelled)
     local gameOverScene = Scene:new()
     setmetatable(gameOverScene, GameOverScene)
-
+    canTransition = true
     -- Background Image new(image, anchorX, anchorY, width, height, x, y)
     local myImage = Image:new(TextureManager:getTexture("white"), 0, 0)
     myImage:setColor(uiBackgroundColor)

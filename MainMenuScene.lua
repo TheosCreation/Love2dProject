@@ -54,8 +54,8 @@ function MainMenuScene:new()
 end
 
 function MainMenuScene:mousepressed(x, y, button)
-    self.OpenGameScene()
     Scene.mousepressed(self, x, y, button)
+    self.OpenGameScene()
 end
 
 function MainMenuScene:OpenGameScene()
