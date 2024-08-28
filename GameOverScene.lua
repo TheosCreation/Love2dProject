@@ -5,6 +5,7 @@ local Image = require("Image")
 local Text = require("Text")
 local Transition = require("Transition")
 local GameScene = require("GameScene")
+local ScoreManager = require("ScoreManager")  -- Include the ScoreManager module
 
 GameOverScene = {}
 GameOverScene.__index = GameOverScene
@@ -12,27 +13,40 @@ GameOverScene.__index = GameOverScene
 setmetatable(GameOverScene, {__index = Scene})
 
 local transition
+local highestScore
 
 function GameOverScene:new(distanceTravelled)
     local gameOverScene = Scene:new()
     setmetatable(gameOverScene, GameOverScene)
     canTransition = true
-    -- Background Image new(image, anchorX, anchorY, width, height, x, y)
+
+    -- Save the highest score if the new score is higher
+    highestScore = ScoreManager:loadScore()
+    if distanceTravelled > highestScore then
+        ScoreManager:saveScore(distanceTravelled)
+        highestScore = distanceTravelled
+    end
+
+    -- Background Image
     local myImage = Image:new(TextureManager:getTexture("white"), 0, 0)
     myImage:setColor(uiBackgroundColor)
     myImage:stretchToScreen()
     gameOverScene:addObject(myImage)
 
-    -- Title Text          new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
-    local TitleText = Text:new("You Flew", 512, 370, "Fonts/VCR_OSD_MONO_1.001.ttf", 96, 1232, 113, false, 0, 0, 0, 0)
+    -- Title Text
+    local TitleText = Text:new("You Flew", 512, 143, "Fonts/VCR_OSD_MONO_1.001.ttf", 96, 1232, 113, false, 0, 0, 0, 0)
     TitleText:setColor(white)
     gameOverScene:addObject(TitleText)
     
-    local DistanceTravelledText = Text:new(math.floor(distanceTravelled) .. "M", 512, 483, "Fonts/VCR_OSD_MONO_1.001.ttf", 150, 1232, 113, false, 0, 0, 0, 0)
+    local DistanceTravelledText = Text:new(math.floor(distanceTravelled) .. "M", 512, 262, "Fonts/VCR_OSD_MONO_1.001.ttf", 150, 1232, 113, false, 0, 0, 0, 0)
     DistanceTravelledText:setColor(white)
     gameOverScene:addObject(DistanceTravelledText)
 
-    -- Next Button         new(x, y, width, height, text, font, fontSize, onClick, radiusX, radiusY, pivotX, pivotY, anchorX, anchorY)
+    local HighestScoreText = Text:new("Highest Score: " .. math.floor(highestScore) .. "M", 752, 473, "Fonts/VCR_OSD_MONO_1.001.ttf", 96, 751, 751, true, 0, 0, 0, 0)
+    HighestScoreText:setColor(white)
+    gameOverScene:addObject(HighestScoreText)
+
+    -- Next Button
     local nextButton = Button:new(928, 900, 400, 125, "Next", "Fonts/VCR_OSD_MONO_1.001.ttf", 36, self.OpenMainMenu, 10, 10, 0, 0)
     nextButton:setColor(white)
     nextButton:setTextColor({0,0,0,1})
@@ -49,7 +63,7 @@ function GameOverScene:OpenMainMenu()
         transition:start(function()
             currentScene = MainMenuScene:new()
         end)
-    canTransition = false
+        canTransition = false
     end
 end
 

@@ -24,7 +24,8 @@ function HowToPlayScene:new()
     myImage:stretchToScreen()
     howToPlayScene:addObject(myImage)
     
-    local knightImage = Image:new(TextureManager:getTexture("jetpackKnight"), 0, 0, 174, 174, 1113, 877)
+    local knightImage = Image:new(TextureManager:getTexture("jetpackKnight"), 0.5, 0, 297, 283, 0, 790, 0.5)
+    knightImage.maintainAspectRatio = true
     howToPlayScene:addObject(knightImage)
 
     -- Title Text          new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY, color)

@@ -2,7 +2,7 @@ Image = {}
 Image.__index = Image
 
 -- Constructor for Image class
-function Image:new(image, anchorX, anchorY, width, height, x, y)
+function Image:new(image, anchorX, anchorY, width, height, x, y, pivotX, pivotY)
     local img = setmetatable({}, Image)
     
     if type(image) == "string" then
@@ -17,6 +17,9 @@ function Image:new(image, anchorX, anchorY, width, height, x, y)
     img.x = x or 0
     img.y = y or 0
     img.color = {1, 1, 1, 1}
+    img.overrideScale = false
+    img.pivotX = pivotX or 0
+    img.pivotY = pivotY or 0
     return img
 end
 
@@ -79,27 +82,72 @@ function Image:stretchToScreen()
     self.width = screenWidth
     self.height = screenHeight
     
-    -- Set the position to be centered on the screen
+    -- Set the position to be at the top-left corner of the screen
     self.x = 0
     self.y = 0
+
+    self.overrideScale = true
 end
 
--- Draw the image on the screen
 function Image:draw()
     if not self then
         return
     end
 
+    -- Define reference screen size for scaling
+    local referenceWidth = 2400
+    local referenceHeight = 1080
+
+    -- Get current window size
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+
+    -- Calculate scale factors based on window size and reference size
+    local scaleX = windowWidth / referenceWidth
+    local scaleY = windowHeight / referenceHeight
+
+    -- Calculate the scaled width and height for the image
+    local scaledWidth = self.width * scaleX
+    local scaledHeight = self.height * scaleY
+
+    -- Calculate the draw position based on anchor and pivot, including scaling
+    local drawX = (self.x - (self.pivotX * scaledWidth)) + (windowWidth * self.anchorX)
+    local drawY = (self.y - (self.pivotY * scaledHeight)) + (windowHeight * self.anchorY)
+
+    -- Get image dimensions
     local imgWidth, imgHeight = self.image:getWidth(), self.image:getHeight()
+
+    -- Calculate aspect ratio of the image
+    local imgAspectRatio = imgWidth / imgHeight
+
+    -- If maintaining aspect ratio is true
+    if self.maintainAspectRatio then
+        -- Calculate scaled dimensions while maintaining aspect ratio
+        local windowAspectRatio = windowWidth / windowHeight
+        if windowAspectRatio > imgAspectRatio then
+            -- Window is wider relative to height
+            scaledHeight = scaledWidth / imgAspectRatio
+        else
+            -- Window is taller relative to width
+            scaledWidth = scaledHeight * imgAspectRatio
+        end
+
+        drawX = (self.x - (self.pivotX * scaledWidth)) + (windowWidth * self.anchorX)
+        drawY = (self.y - (self.pivotY * scaledHeight)) + (windowHeight * self.anchorY)
+    end
+
+    -- Scale factors for the image
+    local imgScaleX = scaledWidth / imgWidth
+    local imgScaleY = scaledHeight / imgHeight
+
+    love.graphics.setColor(self.color) -- Set the image color
     
-    -- Calculate draw position based on anchor
-    local drawX = self.x - (self.anchorX * self.width)
-    local drawY = self.y - (self.anchorY * self.height)
-
-    love.graphics.setColor(self.color) -- Set the text color
-
-    -- Draw the image with scaling and anchor adjustment
-    love.graphics.draw(self.image, drawX, drawY, 0, self.width / imgWidth, self.height / imgHeight)
+    if self.overrideScale then
+        -- Draw the image with specified scale and anchor adjustment
+        love.graphics.draw(self.image, drawX, drawY, 0, self.width, self.height)
+    else
+        -- Draw the image with dynamic scaling and anchor adjustment
+        love.graphics.draw(self.image, drawX, drawY, 0, imgScaleX, imgScaleY)
+    end
 
     love.graphics.setColor(1, 1, 1, 1) -- Reset to default color (white)
 end

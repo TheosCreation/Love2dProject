@@ -24,7 +24,8 @@ function MainMenuScene:new()
     myImage:stretchToScreen()
     mainMenuScene:addObject(myImage)
 
-    local knightImage = Image:new(TextureManager:getTexture("jetpackKnight"), 0, 0, 1109, 1109, 19, -15)
+    local knightImage = Image:new(TextureManager:getTexture("jetpackKnight"), 0.25, 0.5, 1109, 1109, 0, 0, 0.5, 0.5)
+    knightImage.maintainAspectRatio = true
     mainMenuScene:addObject(knightImage)
 
     -- Title Text          new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)

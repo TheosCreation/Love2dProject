@@ -17,7 +17,7 @@ function Button:new(x, y, width, height, text, font, fontSize, onClick, radiusX,
     button.anchorY = anchorY or 0
     button.onClick = onClick
     button.isHovered = false
-    button.color = {1, 1, 1, 1} 
+    button.color = {1, 1, 1, 1}
 
     -- Create a Text object new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY, color)
     button.text = Text:new(text, 0, 0, font, fontSize, width, height, false, 0, 0)
@@ -41,9 +41,13 @@ function Button:update(dt)
     local scaleX = screenWidth / 2400
     local scaleY = screenHeight / 1080
     
-    local buttonX = self.x - (self.width * self.pivotX * scaleX) + (screenWidth * self.anchorX)
-    local buttonY = self.y - (self.height * self.pivotY * scaleY) + (screenHeight * self.anchorY)
-    self.isHovered = mx > buttonX and mx < buttonX + self.width and my > buttonY and my < buttonY + self.height
+    local buttonX = (self.x - (self.width * self.pivotX)) * scaleX + (screenWidth * self.anchorX)
+    local buttonY = (self.y - (self.height * self.pivotY)) * scaleY + (screenHeight * self.anchorY)
+    local buttonWidth = self.width * scaleX
+    local buttonHeight = self.height * scaleY
+
+    -- Update hover state
+    self.isHovered = mx > buttonX and mx < buttonX + buttonWidth and my > buttonY and my < buttonY + buttonHeight
 end
 
 function Button:draw()
@@ -53,8 +57,10 @@ function Button:draw()
     local scaleX = screenWidth / 2400
     local scaleY = screenHeight / 1080
 
-    local buttonX = self.x - (self.width * self.pivotX * scaleX) + (screenWidth * self.anchorX)
-    local buttonY = self.y - (self.height * self.pivotY * scaleY) + (screenHeight * self.anchorY)
+    local buttonX = (self.x - (self.width * self.pivotX)) * scaleX + (screenWidth * self.anchorX)
+    local buttonY = (self.y - (self.height * self.pivotY)) * scaleY + (screenHeight * self.anchorY)
+    local buttonWidth = self.width * scaleX
+    local buttonHeight = self.height * scaleY
 
     if self.isHovered then
         love.graphics.setColor(0.7, 0.7, 0.7)
@@ -64,15 +70,15 @@ function Button:draw()
     
     if self.radiusX > 0 and self.radiusY > 0 then
         -- Draw rounded rectangle
-        love.graphics.rectangle("fill", buttonX, buttonY, self.width, self.height, self.radiusX, self.radiusY)
+        love.graphics.rectangle("fill", buttonX, buttonY, buttonWidth, buttonHeight, self.radiusX * scaleX, self.radiusY * scaleY)
     else
         -- Draw regular rectangle
-        love.graphics.rectangle("fill", buttonX, buttonY, self.width, self.height)
+        love.graphics.rectangle("fill", buttonX, buttonY, buttonWidth, buttonHeight)
     end
 
     -- Draw the text
     love.graphics.setColor(1, 1, 1)
-    self.text:draw(buttonX, buttonY + self.height * 0.35)
+    self.text:draw(buttonX, buttonY + buttonHeight * 0.35)
 end
 
 function Button:mousepressed(x, y, button)
@@ -81,11 +87,13 @@ function Button:mousepressed(x, y, button)
 
     local scaleX = screenWidth / 2400
     local scaleY = screenHeight / 1080
-    
-    local buttonX = self.x - (self.width * self.pivotX * scaleX) + (screenWidth * self.anchorX)
-    local buttonY = self.y - (self.height * self.pivotY * scaleY) + (screenHeight * self.anchorY)
 
-    if button == 1 and x > buttonX and x < buttonX + self.width and y > buttonY and y < buttonY + self.height then
+    local buttonX = (self.x - (self.width * self.pivotX)) * scaleX + (screenWidth * self.anchorX)
+    local buttonY = (self.y - (self.height * self.pivotY)) * scaleY + (screenHeight * self.anchorY)
+    local buttonWidth = self.width * scaleX
+    local buttonHeight = self.height * scaleY
+
+    if button == 1 and x > buttonX and x < buttonX + buttonWidth and y > buttonY and y < buttonY + buttonHeight then
         self:onClick()
     end
 end

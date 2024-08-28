@@ -14,7 +14,13 @@ end
 
 local obstacleList = {}
 
+
+
 local patterns = {}
+
+function obstacles.reset()
+    obstacleList = {}
+end
 
 -- Function to determine rotation direction based on chance
 local function getRotationDirection(chanceOfRotation)

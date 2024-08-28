@@ -11,13 +11,10 @@ setmetatable(GameScene, {__index = Scene})
 
 function GameScene:new()
     local gameScene = Scene:new()
+    Obstacles.reset() -- Reset obstacles
     setmetatable(gameScene, GameScene)
 
     -- Initialize game-specific variables
-    gameScene.time = 0
-    gameScene.fpsHistory = {}
-    gameScene.maxFPSHistory = 1000
-    gameScene.framerate = 0
     gameScene.distanceTraveled = 0
     gameScene.distanceDivisionFactor = 60
 
@@ -41,14 +38,20 @@ function GameScene:new()
     gameScene.camera = Camera
     gameScene.camera:setPosition(gameScene.scrWidth / 2.5, 0)
 
+    gameScene.music = love.audio.newSource("Audio/Music.ogg", "stream")
+    gameScene.music:setLooping(true)
+    gameScene.music:setVolume(0.1)
+    gameScene.music:play()
+
     -- Initialize obstacles
     Obstacles.init(gameScene.scrWidth, gameScene.scrHeight, gameScene.groundAndRoofSpacing, love.graphics.newImage("Sprites/sawblade.png"))
+    
 
     -- Create a new player instance
     local playerSize = 100
     local startY = (gameScene.scrHeight - gameScene.groundAndRoofSpacing) - playerSize / 2
     local particleImage = love.graphics.newImage("Sprites/expolsion.png")
-    gameScene.character = Character:new(100, startY, playerSize, playerSize, particleImage, gameScene.scrWidth, gameScene.scrHeight)
+    gameScene.character = Character:new(0, startY, playerSize, playerSize, particleImage, gameScene.scrWidth, gameScene.scrHeight)
 
     -- Create animations for the player
     local flyingAnimation = Animation:new(love.graphics.newImage("Sprites/JetpackKnightFlying.png"), 36, 36, 2, 2)
@@ -57,7 +60,7 @@ function GameScene:new()
     local walkingAnimations = Animation:new(love.graphics.newImage("Sprites/JetpackKnightWalking.png"), 36, 36, 0.5, 2)
     gameScene.character:addAnimation("walking", walkingAnimations)
 
-    -- Set the inital animation state
+    -- Set the initial animation state
     gameScene.character:setAnimation("walking")
 
     -- Initialize debug text  new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY)
@@ -70,19 +73,6 @@ end
 
 function GameScene:update(dt)
     Scene.update(self, dt) -- Update all objects in the scene
-
-    local fps = 1 / dt
-    table.insert(self.fpsHistory, fps)
-    if #self.fpsHistory > self.maxFPSHistory then
-        table.remove(self.fpsHistory, 1)
-    end
-
-    local sum = 0
-    for _, v in ipairs(self.fpsHistory) do
-        sum = sum + v
-    end
-    self.framerate = sum / #self.fpsHistory
-    self.time = self.time + dt
 
     -- Gradually increase player speed
     self.playerSpeed = self.playerSpeed + self.speedIncrement * dt
@@ -116,18 +106,21 @@ function GameScene:update(dt)
     end
 
     -- Update camera position (only horizontally)
-    self.camera:setPosition(self.character.x - self.scrWidth / 2.5, 0)
+    local cameraX = self.character.x - self.scrWidth / 2.5
+    self.camera:setPosition(cameraX, 0)
 
     -- Update obstacles
-    Obstacles.update(dt, self.camera:getPositionX())
+    Obstacles.update(dt, cameraX)
 
-    -- Check if there are no obstacles
+    -- Check if there are no obstacles and spawn new ones
+    local cameraRightEdge = cameraX + self.scrWidth
     if Obstacles.isEmpty() then
-        Obstacles.spawnPattern(self.camera:getPositionX() + self.scrWidth)
+        Obstacles.spawnPattern(cameraRightEdge)
     end
 
     -- Check collision with character
     if Obstacles.checkCollision(self.character) then
+        self.music:stop()
         currentScene = GameOverScene:new(self.distanceTraveled)
     end
 

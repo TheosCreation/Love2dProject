@@ -1,15 +1,12 @@
 Text = {}
 Text.__index = Text
 
-function Text:new(text, x, y, font, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY, color)
+function Text:new(text, x, y, fontFileName, fontSize, width, height, wrap, pivotX, pivotY, anchorX, anchorY, color)
     local t = setmetatable({}, Text)
     
-    -- Create or set the font with the specified fontSize
-    if type(font) == "string" then
-        t.font = love.graphics.newFont(font, fontSize)
-    else
-        t.font = font or love.graphics.newFont(fontSize)
-    end
+    -- Create font with the specified fontSize
+    t.font = love.graphics.newFont(fontFileName, fontSize)
+    t.fontFileName = fontFileName
 
     t.text = text
     t.x = x
@@ -90,7 +87,7 @@ end
 
 function Text:setFontSize(fontSize)
     self.fontSize = fontSize
-    self.font = love.graphics.newFont(self.font:getFilename(), fontSize)
+    self.font = love.graphics.newFont(self.fontFileName, fontSize)
     if self.wrap then
         self:wrapText()
     end
@@ -104,22 +101,26 @@ function Text:draw(x, y)
     local screenWidth = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
 
+    -- Calculate scale factors based on the reference resolution
     local scaleX = screenWidth / 2400
     local scaleY = screenHeight / 1080
 
-    local textX = (x or self.x) * scaleX
-    local textY = (y or self.y) * scaleY
+    -- Scale the font size down by the smaller scale factor
+    local scaledFontSize = self.fontSize * math.min(scaleX, scaleY)
+    local scaledFont = love.graphics.newFont(self.fontFileName, scaledFontSize)
 
-    local worldTextX = textX - (self.width * self.pivotX * scaleX) + (screenWidth * self.anchorX)
-    local worldTextY = textY - (self.height * self.pivotY * scaleY) + (screenHeight * self.anchorY)
+    local textX = self.x * scaleX
+    local textY = self.y * scaleY
 
-    love.graphics.setFont(self.font)
+    local worldTextX = x or textX - (self.width * self.pivotX * scaleX) + (screenWidth * self.anchorX)
+    local worldTextY = y or textY- (self.height * self.pivotY * scaleY) + (screenHeight * self.anchorY)
+
+    love.graphics.setFont(scaledFont)  -- Set the scaled font
     love.graphics.setColor(self.color) -- Set the text color
     
     if self.wrap then
         love.graphics.printf(self.text, worldTextX, worldTextY, self.width * scaleX, self.alignment)
     else
-        
         love.graphics.printf(self.text, worldTextX, worldTextY, self.width * scaleX, self.alignment)
     end
     
